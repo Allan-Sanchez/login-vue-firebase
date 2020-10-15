@@ -1,29 +1,79 @@
-import Vue from 'vue'
-import VueRouter from 'vue-router'
-import Home from '../views/Home.vue'
+import Vue from "vue";
+import VueRouter from "vue-router";
+import Home from "../views/Home.vue";
+import firebase from 'firebase'
 
-Vue.use(VueRouter)
+Vue.use(VueRouter);
 
 const routes = [
   {
-    path: '/',
-    name: 'Home',
-    component: Home
+    path: "/",
+    name: "Home",
+    component: Home,
+    meta:{
+      requiresAuth:true
+    }
+
   },
   {
-    path: '/about',
-    name: 'About',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/About.vue')
-  }
-]
+    path: "/login",
+    name: "Login",
+    meta:{
+      requiresGuest:true
+    },
+    component: () =>
+      import(/* webpackChunkName: "about" */ "../views/Login.vue"),
+  },
+  {
+    path: "/signin",
+    name: "Signin",
+    meta:{
+      requiresGuest:true
+    },
+    component: () =>
+      import(/* webpackChunkName: "about" */ "../views/Signin.vue"),
+  },
+];
 
 const router = new VueRouter({
-  mode: 'history',
+  mode: "history",
   base: process.env.BASE_URL,
-  routes
-})
+  routes,
+});
 
-export default router
+
+//nav guards
+router.beforeEach((to,from,next) => {
+  // check for requiredAuth guard
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    // check i not logged in
+    if (!firebase.auth().currentUser) {
+      next({
+        path:'/login',
+        query:{
+          redirect: to.fullPath
+        }
+      });
+    }else{
+      next();
+    }
+  }
+  else if(to.matched.some(record => record.meta.requiresGuest)){
+       // check i not logged in
+    if (firebase.auth().currentUser) {
+      next({
+        path:'/',
+        query:{
+          redirect: to.fullPath
+        }
+      });
+    }else{
+      // proceed to route
+      next();
+    }
+  }else{
+    // proceed to route
+    next();
+  }
+});
+export default router;
